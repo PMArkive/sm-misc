@@ -1,4 +1,4 @@
-//incomplete attempt to playback ayuto's sourcepython replay files in sourcemod
+//incomplete attempt to playback ayuto's sourcepython replay files in sourcemod (trick.surf replay files)
 //https://github.com/Ayuto/ReplayBot
 
 #include <sourcemod>
