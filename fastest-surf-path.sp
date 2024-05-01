@@ -1,3 +1,5 @@
+//fastest path between two set points
+
 #include <sourcemod>
 #include <sdktools>
 #include <smlib>
