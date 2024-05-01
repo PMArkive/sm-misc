@@ -3,11 +3,9 @@
 #include <sourcemod>
 #include <sdktools>
 #include <smlib>
-#include <convar>
+#include <convars>
 #include <sdkhooks>
-#include <command>
 #include <console>
-#include "b.inc"
 
 #define MAX_POINTS 2
 #define GRAVITY 800.0
@@ -174,7 +172,7 @@ float CalculateRampAngle(const float vStart[3], const float vEnd[3])
     float fDeltaX = vEnd[0] - vStart[0];
     float fDeltaY = vEnd[1] - vStart[1];
     float fDeltaZ = vEnd[2] - vStart[2];
-    return ArcTangent2(SquareRoot(fDeltaX * fDeltaX + fDeltaY * fDeltaY), fDeltaZ);
+    return ArcTangent2D(SquareRoot(fDeltaX * fDeltaX + fDeltaY * fDeltaY), fDeltaZ);
 }
 
 float CalculateFastestTime(const float vStart[3], const float vEnd[3], float fRampAngle, const float vVelocity[3])
@@ -185,15 +183,15 @@ float CalculateFastestTime(const float vStart[3], const float vEnd[3], float fRa
     float fDeltaTheta = fThetaMax / CURVE_RESOLUTION;
     float fPrevX = 0.0;
     float fPrevY = 0.0;
-    float fPrevVelocity = GetVectorLength(vVelocity);
+    float fPrevVelocity = GetVectorLengthD(vVelocity);
     for (int i = 1; i <= CURVE_RESOLUTION; i++)
     {
         float fTheta = i * fDeltaTheta;
-        float fX = fScalingFactor * (fTheta - Sine(fTheta));
-        float fY = fScalingFactor * (1 - Cosine(fTheta));
+        float fX = fScalingFactor * (fTheta - SineD(fTheta));
+        float fY = fScalingFactor * (1 - CosineD(fTheta));
         float fDistance = SquareRoot(Pow(fX - fPrevX, 2.0) + Pow(fY - fPrevY, 2.0));
         float fAcceleration = g_AirAccelerate * g_TickInterval;
-        float fGravityComponent = GRAVITY * Sine(fRampAngle) * g_TickInterval;
+        float fGravityComponent = GRAVITY * SineD(fRampAngle) * g_TickInterval;
         float fTime = CalculateSegmentTime(fDistance, fPrevVelocity, fAcceleration, fGravityComponent);
         fFastestTime += fTime;
         fPrevX = fX;
@@ -215,7 +213,7 @@ float CalculateThetaMax(const float vStart[3], const float vEnd[3])
 {
     float fDeltaX = vEnd[0] - vStart[0];
     float fDeltaY = vEnd[1] - vStart[1];
-    return ArcTangent2(fDeltaY, fDeltaX);
+    return ArcTangent2D(fDeltaY, fDeltaX);
 }
 
 float CalculateSegmentTime(float fDistance, float fInitialVelocity, float fAcceleration, float fGravityComponent)
@@ -240,7 +238,7 @@ float MaxValue(float a, float b)
     return (a > b) ? a : b;
 }
 
-float GetVectorLength(const float vec[3])
+float GetVectorLengthD(const float vec[3])
 {
     return SquareRoot(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
 }
@@ -281,7 +279,7 @@ public Action Timer_DrawPoints(Handle timer)
     return Plugin_Continue;
 }
 
-float ArcTangent2(float y, float x)
+float ArcTangent2D(float y, float x)
 {
     if (x == 0.0)
     {
@@ -290,12 +288,12 @@ float ArcTangent2(float y, float x)
     return ArcTangent(y / x) + (x < 0.0 ? FLOAT_PI : 0.0);
 }
 
-float Sine(float x)
+float SineD(float x)
 {
     return Sine(x * FLOAT_PI / 180.0);
 }
 
-float Cosine(float x)
+float CosineD(float x)
 {
     return Cosine(x * FLOAT_PI / 180.0);
 }
