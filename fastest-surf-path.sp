@@ -9,7 +9,6 @@
 
 #define MAX_POINTS 2
 #define GRAVITY 800.0
-#define TICKRATE 100
 #define CURVE_RESOLUTION 100
 
 float g_SurfPoints[MAXPLAYERS + 1][MAX_POINTS][3];         
@@ -24,7 +23,7 @@ public void OnPluginStart()
     RegConsoleCmd("sm_surfmenu", Command_SurfMenu, "Opens the surf ramp path calculator menu");
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
     g_AirAccelerate = GetConVarFloat(FindConVar("sv_airaccelerate"));
-    g_TickInterval = 1.0 / TICKRATE;
+    g_TickInterval = 1.0 / GetTickInterval();
     g_GlowSprite = PrecacheModel("materials/sprites/blueglow1.vmt");
     CreateConVar("sm_show_glowsprites", "1", "Toggle display of glow sprites for points", FCVAR_NOTIFY, true, 0.0, true, 1.0);
     HookConVarChange(FindConVar("sm_show_glowsprites"), ConVarChange_ShowGlowSprites);
