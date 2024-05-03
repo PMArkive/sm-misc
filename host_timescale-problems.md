@@ -103,4 +103,4 @@ v_post_scaled = v_parallel_scaled - e * v_perp_scaled
               = ts * v_post
 ```
 
-
+this definitely fucks with ducking the most but i dont completely understand why yet
