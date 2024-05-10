@@ -61,7 +61,7 @@ after adjusting velocity based on air strafing, the velocity is clipped against 
    - in the game, gravity is simulated by continuously decreasing the player's Z velocity over time.
 
 5. **surface normal:**
-   -l vector that points perpendicular to a surface, such as the ground or a ramp.
+   - vector that points perpendicular to a surface, such as the ground or a ramp.
    - it indicates the orientation of the surface and is used to calculate how the player's velocity should be adjusted when colliding with the surface.
 
 6. **origin:**
