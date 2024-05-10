@@ -127,6 +127,7 @@ this definitely fucks with ducking the most but i dont completely understand why
 let's assume the default frame time 0.015 seconds (66.67 tick) and the ray's delta is (100, 0, 0). if `host_timescale` is set to 2, the frame time becomes 0.0075 seconds.
 
    default trace ray end position: (100 * 0.015, 0, 0) = (1.5, 0, 0)
+
    trace ray end position with `host_timescale` = 2: (100 * 0.0075, 0, 0) = (0.75, 0, 0)
 
 the trace ray's end position is now inconsistent with the actual movement, leading to inaccurate collision detection.
@@ -149,6 +150,7 @@ the trace ray's end position is now inconsistent with the actual movement, leadi
  so let’s say the sweep distance between `vecAbsStart` and `vecAbsEnd` is 100 units, and the default frame time is 0.015 seconds. If `host_timescale` is set to 0.5, the frame time becomes 0.03 seconds.
 
    default sweep distance: 100 * 0.015 = 1.5 units
+
    sweep distance with `host_timescale` = 0.5: 100 * 0.03 = 3 units
 
    the sweep distance is doubled, potentially causing the sweep test to miss collisions or detect false positives.
@@ -172,6 +174,7 @@ the trace ray's end position is now inconsistent with the actual movement, leadi
 so let’s assume the entity's velocity is (100, 0, 0), the collision normal is (0, 1, 0), and the default frame time is 0.015 seconds. now`host_timescale` is set to 3, the frame time becomes 0.005 seconds.
 
    default new position: (100, 0, 0) * 0.015 = (1.5, 0, 0)
+
    new position with timescale: (100, 0, 0) * 0.005 = (0.5, 0, 0)
 
 the entity's new position after the collision response is inconsistent
