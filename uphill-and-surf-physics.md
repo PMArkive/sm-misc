@@ -29,7 +29,7 @@ uphill speed loss is primarily due to gravity
 when a surface is steep enough that the player is always considered "in the air" when colliding with it, similar to uphill. its Z surface normal must be < 0.7.
 
 ### speed gain
-1. the interaction with `ClipVelocity` allows the player to gain speed from gravity when moving down a slope.
+1. the interaction with `ClipVelocity` and `AddGravity` allows the player to gain speed from gravity when moving down a slope.
 2. air strafing enables the player to gain additional horizontal speed and control their position on the slope.
 
 ### air strafing 
