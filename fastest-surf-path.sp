@@ -2,25 +2,22 @@
 
 #include <sourcemod>
 #include <sdktools>
-#include <smlib>
-#include <convars>
-#include <sdkhooks>
-#include <console>
+//#include <smlib>
 
 #define MAX_POINTS 2
 #define GRAVITY 800.0
 #define CURVE_RESOLUTION 100
 
-float g_SurfPoints[MAXPLAYERS + 1][MAX_POINTS][3];         
-bool g_SelectedPoints[MAXPLAYERS + 1][MAX_POINTS];          
-float g_AirAccelerate;                                      
-float g_TickInterval;                                       
+float g_SurfPoints[MAXPLAYERS + 1][MAX_POINTS][3];
+bool g_SelectedPoints[MAXPLAYERS + 1][MAX_POINTS];
+float g_AirAccelerate;
+float g_TickInterval;
 int g_GlowSprite;
 bool g_ShowGlowSprites = true;
 
 public void OnPluginStart()
 {
-    RegConsoleCmd("sm_surfmenu", Command_SurfMenu, "Opens the surf ramp path calculator menu");
+    RegConsoleCmd("sm_surfmenu", Command_SurfMenu, "Opens the menu");
     HookEvent("player_spawn", Event_PlayerSpawn, EventHookMode_Post);
     g_AirAccelerate = GetConVarFloat(FindConVar("sv_airaccelerate"));
     g_TickInterval = 1.0 / GetTickInterval();
@@ -35,7 +32,6 @@ public void ConVarChange_ShowGlowSprites(ConVar cvar, const char[] oldValue, con
     g_ShowGlowSprites = StrEqual(newValue, "1");
 }
 
-
 public Action Command_SurfMenu(int client, int args)
 {
     if (!IsValidClient(client))
@@ -49,7 +45,7 @@ public Action Command_SurfMenu(int client, int args)
 void ShowSurfMenu(int client)
 {
     Menu menu = new Menu(MenuHandler_SurfMenu);
-    menu.SetTitle("Surf Ramp Path Calculator");
+    menu.SetTitle("Surf calculator");
     if (!g_SelectedPoints[client][0])
     {
         menu.AddItem("point_a", "Set Point A");
@@ -98,6 +94,7 @@ public int MenuHandler_SurfMenu(Menu menu, MenuAction action, int param1, int pa
     {
         delete menu;
     }
+    return 0;
 }
 
 void SetPoint(int client, int index)
@@ -119,7 +116,6 @@ void SetPoint(int client, int index)
     {
         PrintToChat(client, "No valid surface found under the crosshair.");
     }
-
     delete trace;
 }
 
@@ -130,13 +126,41 @@ public bool TraceFilter_AllSolid(int entity, int contentsMask, int client)
 
 void CalculateFastestPath(int client)
 {
-    float vStart[3], vEnd[3], vVelocity[3];
+    float vStart[3], vEnd[3], vVelocity[3], vNormal[3];
     vStart = g_SurfPoints[client][0];
     vEnd = g_SurfPoints[client][1];
     GetEntPropVector(client, Prop_Data, "m_vecVelocity", vVelocity);
-    float fRampAngle = CalculateRampAngle(vStart, vEnd);
-    float fFastestTime = CalculateFastestTime(vStart, vEnd, fRampAngle, vVelocity);
-    PrintToChat(client, "Fastest time between points: %.2f seconds", fFastestTime);
+
+    Handle trace = TR_TraceRayFilterEx(vStart, vEnd, MASK_SOLID, RayType_EndPoint, TraceFilter_AllSolid, client);
+    if (TR_DidHit(trace))
+    {
+        TR_GetPlaneNormal(trace, vNormal);
+
+        float fRampAngle = CalculateRampAngle(vNormal);
+        ClipVelocity(vVelocity, vNormal, vVelocity);
+
+        float fFastestTime = CalculateFastestTime(vStart, vEnd, fRampAngle, vVelocity);
+        PrintToChat(client, "Fastest time between points: %.2f seconds", fFastestTime);
+    }
+    else
+    {
+        PrintToChat(client, "No valid surface found between the points.");
+    }
+    delete trace;
+}
+
+void ClipVelocity(const float vIn[3], const float vNormal[3], float vOut[3])
+{
+    float backoff = GetVectorDotProductD(vIn, vNormal);
+    for (int i = 0; i < 3; i++)
+    {
+        vOut[i] = vIn[i] - (vNormal[i] * backoff);
+    }
+}
+
+float CalculateRampAngle(const float vNormal[3])
+{
+    return ArcCosine(vNormal[2]) * (180.0 / FLOAT_PI);
 }
 
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
@@ -166,14 +190,6 @@ void ResetSelectedPoints(int client)
     }
 }
 
-float CalculateRampAngle(const float vStart[3], const float vEnd[3])
-{
-    float fDeltaX = vEnd[0] - vStart[0];
-    float fDeltaY = vEnd[1] - vStart[1];
-    float fDeltaZ = vEnd[2] - vStart[2];
-    return ArcTangent2D(SquareRoot(fDeltaX * fDeltaX + fDeltaY * fDeltaY), fDeltaZ);
-}
-
 float CalculateFastestTime(const float vStart[3], const float vEnd[3], float fRampAngle, const float vVelocity[3])
 {
     float fScalingFactor = CalculateScalingFactor(vStart, vEnd);
@@ -183,6 +199,8 @@ float CalculateFastestTime(const float vStart[3], const float vEnd[3], float fRa
     float fPrevX = 0.0;
     float fPrevY = 0.0;
     float fPrevVelocity = GetVectorLengthD(vVelocity);
+    float fGravity = GRAVITY * GetSurfaceGravityFactor(fRampAngle);
+
     for (int i = 1; i <= CURVE_RESOLUTION; i++)
     {
         float fTheta = i * fDeltaTheta;
@@ -190,13 +208,14 @@ float CalculateFastestTime(const float vStart[3], const float vEnd[3], float fRa
         float fY = fScalingFactor * (1 - CosineD(fTheta));
         float fDistance = SquareRoot(Pow(fX - fPrevX, 2.0) + Pow(fY - fPrevY, 2.0));
         float fAcceleration = g_AirAccelerate * g_TickInterval;
-        float fGravityComponent = GRAVITY * SineD(fRampAngle) * g_TickInterval;
+        float fGravityComponent = fGravity * g_TickInterval;
         float fTime = CalculateSegmentTime(fDistance, fPrevVelocity, fAcceleration, fGravityComponent);
         fFastestTime += fTime;
         fPrevX = fX;
         fPrevY = fY;
         fPrevVelocity = CalculateSegmentEndVelocity(fPrevVelocity, fAcceleration, fGravityComponent, fTime);
     }
+
     return fFastestTime;
 }
 
@@ -212,7 +231,7 @@ float CalculateThetaMax(const float vStart[3], const float vEnd[3])
 {
     float fDeltaX = vEnd[0] - vStart[0];
     float fDeltaY = vEnd[1] - vStart[1];
-    return ArcTangent2D(fDeltaY, fDeltaX);
+    return ArcTangent2D(fDeltaY, fDeltaX) * (180.0 / FLOAT_PI);
 }
 
 float CalculateSegmentTime(float fDistance, float fInitialVelocity, float fAcceleration, float fGravityComponent)
@@ -224,7 +243,7 @@ float CalculateSegmentTime(float fDistance, float fInitialVelocity, float fAccel
     }
     float fTime1 = (-fInitialVelocity + SquareRoot(fDiscriminant)) / (fAcceleration + fGravityComponent);
     float fTime2 = (-fInitialVelocity - SquareRoot(fDiscriminant)) / (fAcceleration + fGravityComponent);
-    return MaxValue(fTime1, fTime2);
+    return MaxFloat(fTime1, fTime2);
 }
 
 float CalculateSegmentEndVelocity(float fInitialVelocity, float fAcceleration, float fGravityComponent, float fTime)
@@ -232,14 +251,9 @@ float CalculateSegmentEndVelocity(float fInitialVelocity, float fAcceleration, f
     return fInitialVelocity + (fAcceleration + fGravityComponent) * fTime;
 }
 
-float MaxValue(float a, float b)
+float GetSurfaceGravityFactor(float fRampAngle)
 {
-    return (a > b) ? a : b;
-}
-
-float GetVectorLengthD(const float vec[3])
-{
-    return SquareRoot(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+    return CosineD(fRampAngle);
 }
 
 public void OnMapStart()
@@ -251,7 +265,8 @@ public void OnMapStart()
 
 public Action Timer_DrawPoints(Handle timer)
 {
-    if (!g_ShowGlowSprites) {
+    if (!g_ShowGlowSprites)
+    {
         return Plugin_Continue;
     }
 
@@ -280,11 +295,22 @@ public Action Timer_DrawPoints(Handle timer)
 
 float ArcTangent2D(float y, float x)
 {
-    if (x == 0.0)
-    {
-        return y > 0.0 ? FLOAT_PI / 2 : (y < 0.0 ? -FLOAT_PI / 2 : 0.0);
-    }
-    return ArcTangent(y / x) + (x < 0.0 ? FLOAT_PI : 0.0);
+    return ArcTangent2(y, x) * (180.0 / FLOAT_PI);
+}
+
+float MaxFloat(float a, float b)
+{
+    return (a > b) ? a : b;
+}
+
+float GetVectorLengthD(const float vec[3])
+{
+    return SquareRoot(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+}
+
+float GetVectorDotProductD(const float vec1[3], const float vec2[3])
+{
+    return vec1[0] * vec2[0] + vec1[1] * vec2[1] + vec1[2] * vec2[2];
 }
 
 float SineD(float x)
