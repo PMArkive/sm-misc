@@ -1,6 +1,6 @@
 //OnPlayerRunCmdPost
 
-#include <sourcemod>
+/* #include <sourcemod>
 #include <sdktools>
 // #include <sdkhooks>
 
@@ -188,11 +188,11 @@ void ResetClientState(int client) {
     g_fPreBoardVelocity[client][0] = 0.0;
     g_fPreBoardVelocity[client][1] = 0.0;
     g_fPreBoardVelocity[client][2] = 0.0;
-}
+} */
 
 // OnPostThinkPost
 
-/*
+
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
@@ -431,4 +431,4 @@ void ResetClientState(int client) {
     g_fPostBoardVelocity[client][0] = 0.0;
     g_fPostBoardVelocity[client][1] = 0.0;
     g_fPostBoardVelocity[client][2] = 0.0;
-} */
+} 
