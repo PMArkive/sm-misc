@@ -1,4 +1,5 @@
-//https://github.com/followingthefasciaplane/angle-scripts-for-tas
+// https://github.com/followingthefasciaplane/angle-scripts-for-tas
+// This is not complete
 
 #include <sourcemod>
 #include <sdktools>
@@ -185,7 +186,7 @@ public Action Hook_ProcessUsercmds(int client, int buttons, int impulse, const f
 
     // Set the adjusted angles for the client's input
     // SetClientViewEntity(client, client);
-    SetEntPropVector(client, Prop_Send, "m_vecViewOffset[1]", clientAngles[1]); //???
+    SetEntPropVector(client, Prop_Send, "m_vecViewOffset[1]", clientAngles[1]); // Careful here
 
     return Plugin_Changed;
 }
