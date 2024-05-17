@@ -114,7 +114,7 @@ public Action Hook_ProcessUsercmds(int client, int buttons, int impulse, const f
     clientAngles[1] = 0.0;
     clientAngles[2] = 0.0;
 
-    switch (g_angleTypes[g_currentAngle[client]])
+    switch (g_angleTypes[g_currentAngle[client]]) //if clientAngles[i] != 0
     {
         case 0:   // Forwards
         {
