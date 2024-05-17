@@ -111,7 +111,7 @@ public Action Hook_ProcessUsercmds(int client, int buttons, int impulse, const f
 
     float clientAngles[3];
     clientAngles[0] = 0.0;
-    clientAngles[1] = 0.0;
+    clientAngles[1] = 0.0; // needs some conditional
     clientAngles[2] = 0.0;
 
     switch (g_angleTypes[g_currentAngle[client]]) //if clientAngles[1] != 0
