@@ -54,7 +54,7 @@ now lets talk about our surfing overlords `AirMove`, `AirAccelerate`, `PerformFl
 
 `AirMove` calculates `wishdir`, `wishspeed` based on input and eye ang. then these are passed to  `AirAccelerate` and are used with `sv_airaccelerate` to apply acceleration to the velocity.
 
-this is the same problem with PlayerMove but it is actually much worse here
+this is the same problem with PlayerMove but it is actually much worse here because this scaling is quadratic
 
 when `host_timescale` is applied, the acceleration is indirectly affected due to the scaled `wishspeed` and game frametime. the scaled `wishspeed` results in a proportionally scaled acceleration, while the scaled frametime affects how much acceleration is applied in each frame.
 
