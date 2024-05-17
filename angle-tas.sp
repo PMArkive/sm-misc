@@ -40,20 +40,20 @@ public void OnPluginStart()
 
 public void OnClientPutInServer(int client)
 {
-    g_fakeAngles[client][0] = 0.0;
+   /* g_fakeAngles[client][0] = 0.0;
     g_fakeAngles[client][1] = 0.0;
     g_fakeAngles[client][2] = 0.0;
-    g_currentAngle[client] = -1;
+    g_currentAngle[client] = -1; */
 
     SDKHook(client, SDKHook_ProcessUsercmds, Hook_ProcessUsercmds);
 }
 
 public void OnClientDisconnect(int client)
 {
-    g_fakeAngles[client][0] = 0.0;
+    /* g_fakeAngles[client][0] = 0.0;
     g_fakeAngles[client][1] = 0.0;
     g_fakeAngles[client][2] = 0.0;
-    g_currentAngle[client] = -1;
+    g_currentAngle[client] = -1; */
 
     SDKUnhook(client, SDKHook_ProcessUsercmds, Hook_ProcessUsercmds);
 }
@@ -63,10 +63,10 @@ public void OnPlayerTeam(Event event, const char[] name, bool dontBroadcast)
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (client > 0)
     {
-        g_fakeAngles[client][0] = 0.0;
+       /* g_fakeAngles[client][0] = 0.0;
         g_fakeAngles[client][1] = 0.0;
         g_fakeAngles[client][2] = 0.0;
-        g_currentAngle[client] = -1;
+        g_currentAngle[client] = -1; */
     }
 }
 
