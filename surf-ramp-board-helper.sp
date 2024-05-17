@@ -1,3 +1,5 @@
+//we are trying to do this WITHOUT dhooks
+
 //OnPlayerRunCmdPost
 
 /* #include <sourcemod>
