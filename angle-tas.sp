@@ -110,9 +110,9 @@ public Action Hook_ProcessUsercmds(int client, int buttons, int impulse, const f
         return Plugin_Continue;
 
     float clientAngles[3];
-    clientAngles[0] = angles[0];
-    clientAngles[1] = angles[1];
-    clientAngles[2] = angles[2];
+    clientAngles[0] = 0.0;
+    clientAngles[1] = 0.0;
+    clientAngles[2] = 0.0;
 
     switch (g_angleTypes[g_currentAngle[client]])
     {
