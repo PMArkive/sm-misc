@@ -67,10 +67,6 @@ after adjusting velocity based on air strafing, the velocity is clipped against 
 6. **origin:**
    - current position in 3D space, represented by x, y, and z coordinates.
 
-7. **PerformFlyCollisionResolution:**
-   - responsible for resolving collisions when the player is "flying" (not on the ground).
-   - when the player collides with a surface while surfing, this function adjusts their velocity based on the surface normal and the player's move type
-
 8. **ClipVelocity:**
    - adjusts the player's velocity when they collide with a surface.
    - it takes into account the surface normal and a backoff value (determined by the player's surface friction) to reflect the velocity off the surface.
@@ -96,9 +92,8 @@ after adjusting velocity based on air strafing, the velocity is clipped against 
 2. the player's movement is primarily controlled by their wishdir (desired direction) and wishspeed (desired speed), which are determined by their keyboard and mouse inputs.
 3. AirMove is responsible for handling the player's movement while surfing. it applies gravity to the player's velocity and calls AirAccelerate to increase the player's velocity in their wishdir.
 4. AirAccelerate takes the player's wishdir, wishspeed, and an acceleration value (sv_airaccelerate) to calculate how much to increase the player's velocity. this allows the player to gain speed while surfing.
-5. TryPlayerMove then attempts to move the player to a new position based on their updated velocity. if the player collides with a surface during this movement, the PerformFlyCollisionResolution function is called.
-6. PerformFlyCollisionResolution adjusts the player's velocity based on the surface normal. it uses the ClipVelocity function to reflect the player's velocity off the surface.
-7. CheckParameters is called in TryPlayerMove to ensure that the player's movement parameters stay within acceptable ranges, preventing any unexpected behavior.​​​​​​​​​​​​​​​​
+5. TryPlayerMove then attempts to move the player to a new position based on their updated velocity. 
+6. CheckParameters is called in TryPlayerMove to ensure that the player's movement parameters stay within acceptable ranges, preventing any unexpected behavior.​​​​​​​​​​​​​​​​
 
 ## note
 rngfix and momentum mod surf fix overrides some of this stuff. there’s also game specific code too. this covers general source sdk base movement
