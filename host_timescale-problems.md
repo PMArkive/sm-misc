@@ -74,9 +74,9 @@ a_scaled = aa * (ws * ts) * (Δt * ts) * wd
 
 so accel is scaled by the square of `host_timescale`, which is fucked up.
 
-### 3. PerformFlyCollisionResolution and ClipVelocity
+### 3. TryPlayerMove and ClipVelocity
 
-`PerformFlyCollisionResolution`  is responsible for resolving collisions in surfing. it handles collision response and calls `ClipVelocity` to adjust the player's velocity based on the collision plane normal.
+`TryPlayerMove`  is responsible for resolving collisions in surfing. it handles collision response and calls `ClipVelocity` to adjust the player's velocity based on the collision plane normal.
 
 with `host_timescale`, the scaled velocity may result in different collision responses, while the scaled frametime affects the duration of the collision resolution step.
 
