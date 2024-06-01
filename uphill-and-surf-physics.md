@@ -81,7 +81,7 @@ after adjusting velocity based on air strafing, the velocity is clipped against 
 
 11. **TryPlayerMove:**
     - attempts to move the player from their current position to a new position based on their velocity.
-    - checks for collisions with surfaces along the way and calls PerformFlyCollisionResolution if a collision occurs.
+    - checks for collisions with surfaces along the way and calls if a collision occurs.
 - momentum mod surf fix plugin overrides this
 
 12. **CheckParameters:**
