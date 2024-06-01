@@ -111,17 +111,17 @@ public Action Hook_ProcessUsercmds(int client, int buttons, int impulse, const f
     switch (g_angleTypes[g_currentAngle[client]])
     {
         case 0:   // Forwards
-            break;
+            // break;
         case 180: // Backwards
             clientAngles[1] = angles[1] + 180.0;
             SwapButtons(client, IN_FORWARD, IN_BACK);
             SwapButtons(client, IN_MOVELEFT, IN_MOVERIGHT);
-            break;
+            // break;
         case 90:  // Sideways 1
             clientAngles[1] = angles[1] + 90.0;
             SwapButtons(client, IN_FORWARD, IN_MOVERIGHT);
             SwapButtons(client, IN_BACK, IN_MOVELEFT);
-            break;
+            // break;
         case 270: // Sideways 2
             clientAngles[1] = angles[1] + 270.0;
             SwapButtons(client, IN_FORWARD, IN_MOVELEFT);
@@ -131,22 +131,22 @@ public Action Hook_ProcessUsercmds(int client, int buttons, int impulse, const f
             clientAngles[1] = angles[1] + 45.0;
             CombineButtons(client, IN_FORWARD, IN_MOVERIGHT);
             CombineButtons(client, IN_BACK, IN_MOVELEFT);
-            break;
+            // break;
         case 315: // Half-sideways 2
             clientAngles[1] = angles[1] + 315.0;
             CombineButtons(client, IN_FORWARD, IN_MOVELEFT);
             CombineButtons(client, IN_BACK, IN_MOVERIGHT);
-            break;
+            // break;
         case 135: // Backwards Half-sideways 1
             clientAngles[1] = angles[1] + 135.0;
             CombineButtons(client, IN_BACK, IN_MOVERIGHT);
             CombineButtons(client, IN_FORWARD, IN_MOVELEFT);
-            break;
+            // break;
         case 225: // Backwards Half-sideways 2
             clientAngles[1] = angles[1] + 225.0;
             CombineButtons(client, IN_BACK, IN_MOVELEFT);
             CombineButtons(client, IN_FORWARD, IN_MOVERIGHT);
-            break;
+            // break;
     }
 
     NormalizeAngles(clientAngles);
