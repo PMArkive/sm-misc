@@ -1,6 +1,3 @@
-// https://github.com/followingthefasciaplane/angle-scripts-for-tas
-// This is not complete
-
 #include <sourcemod>
 #include <sdktools>
 #include <sdkhooks>
@@ -41,20 +38,20 @@ public void OnPluginStart()
 
 public void OnClientPutInServer(int client)
 {
-   /* g_fakeAngles[client][0] = 0.0;
+    g_fakeAngles[client][0] = 0.0;
     g_fakeAngles[client][1] = 0.0;
     g_fakeAngles[client][2] = 0.0;
-    g_currentAngle[client] = -1; */
+    g_currentAngle[client] = -1;
 
     SDKHook(client, SDKHook_ProcessUsercmds, Hook_ProcessUsercmds);
 }
 
 public void OnClientDisconnect(int client)
 {
-    /* g_fakeAngles[client][0] = 0.0;
+    g_fakeAngles[client][0] = 0.0;
     g_fakeAngles[client][1] = 0.0;
     g_fakeAngles[client][2] = 0.0;
-    g_currentAngle[client] = -1; */
+    g_currentAngle[client] = -1;
 
     SDKUnhook(client, SDKHook_ProcessUsercmds, Hook_ProcessUsercmds);
 }
@@ -64,10 +61,10 @@ public void OnPlayerTeam(Event event, const char[] name, bool dontBroadcast)
     int client = GetClientOfUserId(event.GetInt("userid"));
     if (client > 0)
     {
-       /* g_fakeAngles[client][0] = 0.0;
+        g_fakeAngles[client][0] = 0.0;
         g_fakeAngles[client][1] = 0.0;
         g_fakeAngles[client][2] = 0.0;
-        g_currentAngle[client] = -1; */
+        g_currentAngle[client] = -1;
     }
 }
 
@@ -109,95 +106,90 @@ public Action Hook_ProcessUsercmds(int client, int buttons, int impulse, const f
     if (g_currentAngle[client] == -1)
         return Plugin_Continue;
 
-    float clientAngles[3];
-    clientAngles[0] = 0.0;
-    clientAngles[1] = 0.0; // needs some conditional
-    clientAngles[2] = 0.0;
+    float clientAngles[3] = {0.0, 0.0, 0.0};
 
-    switch (g_angleTypes[g_currentAngle[client]]) //if clientAngles[1] != 0
+    switch (g_angleTypes[g_currentAngle[client]])
     {
         case 0:   // Forwards
-        {
-            // No adjustment needed
-        }
+            break;
         case 180: // Backwards
-        {
             clientAngles[1] = angles[1] + 180.0;
-            SetLocalMoveCommand(client, IN_FORWARD, IN_BACK);
-            SetLocalMoveCommand(client, IN_BACK, IN_FORWARD);
-            SetLocalMoveCommand(client, IN_MOVELEFT, IN_MOVERIGHT);
-            SetLocalMoveCommand(client, IN_MOVERIGHT, IN_MOVELEFT);
-        }
+            SwapButtons(client, IN_FORWARD, IN_BACK);
+            SwapButtons(client, IN_MOVELEFT, IN_MOVERIGHT);
+            break;
         case 90:  // Sideways 1
-        {
             clientAngles[1] = angles[1] + 90.0;
-            SetLocalMoveCommand(client, IN_FORWARD, IN_MOVERIGHT);
-            SetLocalMoveCommand(client, IN_BACK, IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_MOVELEFT, IN_BACK);
-            SetLocalMoveCommand(client, IN_MOVERIGHT, IN_FORWARD);
-        }
+            SwapButtons(client, IN_FORWARD, IN_MOVERIGHT);
+            SwapButtons(client, IN_BACK, IN_MOVELEFT);
+            break;
         case 270: // Sideways 2
-        {
             clientAngles[1] = angles[1] + 270.0;
-            SetLocalMoveCommand(client, IN_FORWARD, IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_BACK, IN_MOVERIGHT);
-            SetLocalMoveCommand(client, IN_MOVELEFT, IN_FORWARD);
-            SetLocalMoveCommand(client, IN_MOVERIGHT, IN_BACK);
-        }
+            SwapButtons(client, IN_FORWARD, IN_MOVELEFT);
+            SwapButtons(client, IN_BACK, IN_MOVERIGHT);
+            break;
         case 45:  // Half-sideways 1
-        {
             clientAngles[1] = angles[1] + 45.0;
-            SetLocalMoveCommand(client, IN_FORWARD, IN_FORWARD | IN_MOVERIGHT);
-            SetLocalMoveCommand(client, IN_BACK, IN_BACK | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_MOVELEFT, IN_FORWARD | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_MOVERIGHT, IN_BACK | IN_MOVERIGHT);
-        }
+            CombineButtons(client, IN_FORWARD, IN_MOVERIGHT);
+            CombineButtons(client, IN_BACK, IN_MOVELEFT);
+            break;
         case 315: // Half-sideways 2
-        {
             clientAngles[1] = angles[1] + 315.0;
-            SetLocalMoveCommand(client, IN_FORWARD, IN_FORWARD | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_BACK, IN_BACK | IN_MOVERIGHT);
-            SetLocalMoveCommand(client, IN_MOVELEFT, IN_BACK | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_MOVERIGHT, IN_FORWARD | IN_MOVERIGHT);
-        }
+            CombineButtons(client, IN_FORWARD, IN_MOVELEFT);
+            CombineButtons(client, IN_BACK, IN_MOVERIGHT);
+            break;
         case 135: // Backwards Half-sideways 1
-        {
             clientAngles[1] = angles[1] + 135.0;
-            SetLocalMoveCommand(client, IN_FORWARD, IN_BACK | IN_MOVERIGHT);
-            SetLocalMoveCommand(client, IN_BACK, IN_FORWARD | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_MOVELEFT, IN_BACK | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_MOVERIGHT, IN_FORWARD | IN_MOVERIGHT);
-        }
+            CombineButtons(client, IN_BACK, IN_MOVERIGHT);
+            CombineButtons(client, IN_FORWARD, IN_MOVELEFT);
+            break;
         case 225: // Backwards Half-sideways 2
-        {
             clientAngles[1] = angles[1] + 225.0;
-            SetLocalMoveCommand(client, IN_FORWARD, IN_BACK | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_BACK, IN_FORWARD | IN_MOVERIGHT);
-            SetLocalMoveCommand(client, IN_MOVELEFT, IN_FORWARD | IN_MOVELEFT);
-            SetLocalMoveCommand(client, IN_MOVERIGHT, IN_BACK | IN_MOVERIGHT);
-        }
+            CombineButtons(client, IN_BACK, IN_MOVELEFT);
+            CombineButtons(client, IN_FORWARD, IN_MOVERIGHT);
+            break;
     }
 
-    // Normalize the adjusted angles
-    while (clientAngles[1] > 180.0)
-        clientAngles[1] -= 360.0;
-    while (clientAngles[1] < -180.0)
-        clientAngles[1] += 360.0;
+    NormalizeAngles(clientAngles);
 
-    // Set the adjusted angles for the client's input
-    // SetClientViewEntity(client, client);
-    SetEntPropVector(client, Prop_Send, "m_vecViewOffset[1]", clientAngles[1]); // Careful here
+    SetEntPropVector(client, Prop_Send, "m_vecViewOffset[1]", clientAngles);
 
     return Plugin_Changed;
 }
 
-void SetLocalMoveCommand(int client, int button, int newButtons)
+void SwapButtons(int client, int button1, int button2)
 {
-    //This is incomplete and does not handle HSW
     int buttons = GetEntProp(client, Prop_Data, "m_nButtons");
-    buttons &= ~button;
-    buttons |= newButtons;
-    SetEntPropFloat(client, Prop_Send, "m_flForwardMove", (buttons & IN_FORWARD) ? 450.0 : ((buttons & IN_BACK) ? -450.0 : 0.0)); 
-    SetEntPropFloat(client, Prop_Send, "m_flSideMove", (buttons & IN_MOVERIGHT) ? 450.0 : ((buttons & IN_MOVELEFT) ? -450.0 : 0.0));
-    SetEntPropFloat(client, Prop_Send, "m_flUpMove", (buttons & IN_JUMP) ? 450.0 : 0.0);
+    bool hasButton1 = (buttons & button1) != 0;
+    bool hasButton2 = (buttons & button2) != 0;
+
+    if (hasButton1)
+        buttons |= button2;
+    else
+        buttons &= ~button2;
+
+    if (hasButton2)
+        buttons |= button1;
+    else
+        buttons &= ~button1;
+
+    SetEntProp(client, Prop_Data, "m_nButtons", buttons);
+}
+
+void CombineButtons(int client, int button1, int button2)
+{
+    int buttons = GetEntProp(client, Prop_Data, "m_nButtons");
+    if (buttons & button1)
+        buttons |= button2;
+    else
+        buttons &= ~button2;
+
+    SetEntProp(client, Prop_Data, "m_nButtons", buttons);
+}
+
+void NormalizeAngles(float angles[3])
+{
+    while (angles[1] > 180.0)
+        angles[1] -= 360.0;
+    while (angles[1] < -180.0)
+        angles[1] += 360.0;
 }
