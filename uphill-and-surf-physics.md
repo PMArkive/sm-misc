@@ -69,7 +69,7 @@ after adjusting velocity based on air strafing, the velocity is clipped against 
 
 8. **ClipVelocity:**
    - adjusts the player's velocity when they collide with a surface.
-   - it takes into account the surface normal and a backoff value (determined by the player's surface friction) to reflect the velocity off the surface.
+   - it takes into account the surface normal and a backoff value (determined by the player's wishdir) to reflect the velocity off the surface.
 
 9. **AirMove:**
    - handles the player's movement while they are in the air, including surfing.
