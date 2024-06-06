@@ -81,7 +81,7 @@ after adjusting velocity based on air strafing, the velocity is clipped against 
 
 11. **TryPlayerMove:**
     - attempts to move the player from their current position to a new position based on their velocity.
-    - checks for collisions with surfaces along the way and calls if a collision occurs.
+    - checks for collisions with surfaces along the way and calls ClipVelocity if a collision occurs.
 - momentum mod surf fix plugin overrides this
 
 12. **CheckParameters:**
@@ -92,7 +92,7 @@ after adjusting velocity based on air strafing, the velocity is clipped against 
 2. the player's movement is primarily controlled by their wishdir (desired direction) and wishspeed (desired speed), which are determined by their keyboard and mouse inputs.
 3. AirMove is responsible for handling the player's movement while surfing. it applies gravity to the player's velocity and calls AirAccelerate to increase the player's velocity in their wishdir.
 4. AirAccelerate takes the player's wishdir, wishspeed, and an acceleration value (sv_airaccelerate) to calculate how much to increase the player's velocity. this allows the player to gain speed while surfing.
-5. TryPlayerMove then attempts to move the player to a new position based on their updated velocity. 
+5. TryPlayerMove then attempts to move the player to a new position based on their updated velocity and calls ClipVelocity to clip their velocity against the surface normal of the plane. 
 6. CheckParameters is called in TryPlayerMove to ensure that the player's movement parameters stay within acceptable ranges, preventing any unexpected behavior.​​​​​​​​​​​​​​​​
 
 ## note
