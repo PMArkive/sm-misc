@@ -113,9 +113,9 @@ The angle delay detection logic is spread across multiple functions. It checks i
 - **Trigger**: Triggered when the player freezes their angles for one or more ticks after pressing a button until the angle changes again, indicating potential cheating.
 
 ### 12. DR_ImpossibleGains
-- **Description**: Indicates potential strafe hacks if gains are less than 85%.
+- **Description**: Indicates potential strafe hacks if gains are more than 85% and yaw is less than 60%.
 - **Action**: Warn admins.
-- **Trigger**: Triggered when the player's gains are less than 85%, suggesting potential strafe hacking.
+- **Trigger**: Triggered when the player's gains are more than 85% and yaw is less than 60% potential strafe hacking.
 
 ### 13. DR_WiggleHack
 - **Description**: Almost definitely strafe hack. Check for IN_LEFT/IN_RIGHT.
