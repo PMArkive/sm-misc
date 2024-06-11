@@ -31,7 +31,7 @@ public void OnTrickCompleted(int client)
     // Create Effect_EnvSprite
     int sprite = Effect_EnvSprite(
         offset,                         // Spawn the sprite at the offset from eye pos
-        PrecacheModel(SPRITE_MODEL),    // Load the precached sprite model
+        SPRITE_MODEL,                   // Load the precached sprite model
         {255, 255, 255, 255},           // Color (R, G, B, A)
         0.5,                            // Scale
         "",                             // Target name, irrelevant for now anyway
