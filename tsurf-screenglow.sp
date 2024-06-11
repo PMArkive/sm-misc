@@ -6,11 +6,12 @@
 #define SPRITE_MODEL "sprites/blueglow1.vmt" // Choose the model
 
 bool g_showSprite[MAXPLAYERS + 1];
+int g_spriteModelIndex;
 
 public void OnPluginStart()
 {
     // Precache
-    PrecacheModel(SPRITE_MODEL);
+    g_spriteModelIndex = PrecacheModel(SPRITE_MODEL);
 }
 
 public void OnTrickCompleted(int client)
@@ -31,7 +32,7 @@ public void OnTrickCompleted(int client)
     // Create Effect_EnvSprite
     int sprite = Effect_EnvSprite(
         offset,                         // Spawn the sprite at the offset from eye pos
-        SPRITE_MODEL,                   // Load the precached sprite model
+        g_spriteModelIndex,                   // Load the precached sprite model
         {255, 255, 255, 255},           // Color (R, G, B, A)
         0.5,                            // Scale
         "",                             // Target name, irrelevant for now anyway
