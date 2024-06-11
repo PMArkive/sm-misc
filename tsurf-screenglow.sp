@@ -1,3 +1,4 @@
+//https://github.com/bcserv/smlib/blob/master/scripting/include/smlib/effects.inc
 #include <sourcemod>
 #include <sdktools>
 #include <smlib/effects>
