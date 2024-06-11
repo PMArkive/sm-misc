@@ -1,0 +1,527 @@
+https://rampsliders.wiki/doku.php?id=physics:gamemovement
+
+===== gamemovement.cpp =====
+
+==== Essential Surfing Conditions ====
+
+For a surface to be viable for surfing, it must meet specific criteria related to its angle and the player's interaction with it.\\
+Please keep in mind that this is a guide analyzing code from Counter-Strike: Source and the Base source SDK, and custom games will override these functions.
+Momentum mod surf fix and RNGFix also change the behavior of some of these functions.
+
+=== Surface Steepness ===
+  - **Criteria**: The surface must be steep enough that the player is considered "in the air" while interacting with it. Technically, the Z component of the surface's normal vector must be less than 0.7. This condition ensures that the player is treated as "in the air" rather than "on the ground" when touching the surface.
+
+=== How you gain speed, and how surfing works: ===
+- [[https://www.ryanliptak.com/blog/rampsliding-quake-engine-quirk/|Article by Ryan Liptak]]
+
+The fundamental concept in surfing is the interaction between the player and inclined surfaces. 
+
+The core math involves resolving the player's velocity along the plane of the surface.\\
+When a player is on a sloped surface, the normal force from the surface impacts their movement. The key here is to decompose the player's movement into components parallel and perpendicular to the surface.
+
+This is done with ClipVelocity. It finds the component of the velocity that is perpendicular to the surface normal using the dot product.\\
+It subtracts this component from the original velocity, leaving the velocity component parallel to the surface.
+
+Gravity is applied every tick, and with high enough sv_airaccelerate, ClipVelocity indirectly projects this gravity vector onto the surface plane.\\ 
+This unique interaction between ClipVelocity, AirAccelerate, and Gravity is what accelerates the player down the slope.
+
+
+----
+
+===== Glossary =====
+
+=== 1. Wishspeed, Wishvel, Wishdir, Air Max Wishspeed ===
+
+These are all used for determining how much acceleration a player should receive per tick, among other velocity operations.
+
+=== Wishdir ===
+  - **Definition**: The normalized direction vector in which the player wishes to move, based on their input and view direction. It is a vector that points in the direction the player wants to move.
+  - **Significance**: wishdir determines the direction of the player's intended movement. It is crucial for calculating the desired velocity (wishvel) and ensuring the player moves in the correct direction based on their input.
+
+=== Wishspeed ===
+  - **Definition**: The scalar speed at which the player intends to move. It is calculated based on the player's input and represents how fast the player wants to move in the direction of wishdir.
+  - **Significance**: wishspeed determines the magnitude of the player's intended movement. It is used to scale the wishdir to form the wishvel, ensuring the player accelerates at the desired speed.
+
+=== Wishvel ===
+  - **Definition**: The velocity vector that the player intends to have. It is calculated using wishdir and wishspeed, giving a velocity vector that points in the desired direction with the desired speed.
+  - **Significance**: Wishvel combines both the direction (wishdir) and the speed (wishspeed) to form the complete desired velocity vector. It is used to adjust the player's current velocity towards the intended movement.
+
+=== sv_air_max_wishspeed ===
+    - **Definition**: A cap on the projection of the movement vector when the player is in the air, set to limit the maximum wishspeed. By default, it is set to 30 and cannot be changed without external tools.
+    - **Significance**: sv_air_max_wishspeed limits the maximum amount of velocity that can be projected onto a player's velocity from acceleration per tick. This prevents the player from accelerating indefinitely in the air.
+
+=== 2. Veer ===
+  - **Definition**: The difference between the player's current velocity and their desired velocity in `wishvel`.
+  - **Significance**: Indicates how much the player wants to change their movement direction and speed. It essentially measures the discrepancy between the player's current movement and the desired movement, guiding how much acceleration is needed to achieve the desired velocity.
+
+=== 3. Velocity ===
+  - **Definition**: The player's current speed and direction in 3D space, represented as a vector with x, y, and z components.
+
+=== 4. Gravity ===
+  - **Definition**: A constant force pulling the player downward, simulated by continuously decreasing the player's Z velocity each tick
+
+=== 5. Surface Normal ===
+  - **Definition**: A vector perpendicular to a surface, used to determine how the player's velocity should be adjusted upon collision. For a surf ramp, this would be the angle of the slope of the ramp.
+
+=== 6. Origin ===
+  - **Definition**: The player's current position in 3D space, specified by x, y, and z coordinates in a Vector.
+
+=== 7. sv_airaccelerate ===
+  - **Definition**: Rate at which a player can accelerate towards ''wishdir'', allowing quick direction and speed changes.
+  - **Usage**: To determine how much acceleration to add or lose when turning.
+
+=== 8. Frametime ===
+  - **Definition**: The interval of time (ms) between server ticks.
+  - **Usage**: The frequency at which to calculate movement updates.
+
+=== 9. Backoff ===
+  - **Backoff**: The backoff value is calculated as the dot product of the input velocity and the surface normal, scaled by the overbounce factor. It represents the component of the velocity that is directed into the surface and needs to be negated to simulate a bounce or slide along the surface.
+  - **Overbounce**: The overbounce factor is a scaling factor applied to the backoff value. It determines how much of the velocity component directed into the surface is negated. An overbounce value greater than 1.0 will cause the player to bounce off the surface with more energy, while a value less than 1.0 will cause a more dampened response.
+
+----
+
+===== Key Functions Explained =====
+
+==== CGameMovement::AirMove ====
+
+The `AirMove` function handles the player's movement while in the air by calculating the desired movement direction and speed based on player input, applying air acceleration, and handling the base velocity from moving platforms. It ensures the player does not exceed the maximum speed and attempts to move the player accordingly. The function also incorporates air acceleration logic to allow for more nuanced movement while airborne.
+
+<code cpp>
+void CGameMovement::AirMove( void )
+{
+    int i;
+    Vector wishvel;
+    float fmove, smove;
+    Vector wishdir;
+    float wishspeed;
+    Vector forward, right, up;
+
+    AngleVectors (mv->m_vecViewAngles, &forward, &right, &up);  // Determine movement angles
+    
+    // Copy movement amounts
+    fmove = mv->m_flForwardMove;
+    smove = mv->m_flSideMove;
+    
+    // Zero out z components of movement vectors
+    forward[2] = 0;
+    right[2]   = 0;
+    VectorNormalize(forward);  // Normalize remainder of vectors
+    VectorNormalize(right);    // 
+
+    for (i=0 ; i<2 ; i++)       // Determine x and y parts of velocity
+        wishvel[i] = forward[i]*fmove + right[i]*smove;
+    wishvel[2] = 0;             // Zero out z part of velocity
+
+    VectorCopy (wishvel, wishdir);   // Determine maginitude of speed of move
+    wishspeed = VectorNormalize(wishdir);
+
+    //
+    // clamp to server defined max speed
+    //
+    if ( wishspeed != 0 && (wishspeed > mv->m_flMaxSpeed))
+    {
+        VectorScale (wishvel, mv->m_flMaxSpeed/wishspeed, wishvel);
+        wishspeed = mv->m_flMaxSpeed;
+    }
+    
+    AirAccelerate( wishdir, wishspeed, sv_airaccelerate.GetFloat() );
+
+    // Add in any base velocity to the current velocity.
+    VectorAdd(mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
+
+    TryPlayerMove();
+
+    // Now pull the base velocity back out.   Base velocity is set if you are on a moving object, like a conveyor (or maybe another monster?)
+    VectorSubtract( mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
+}
+</code>
+
+=== Breakdown ===
+
+  - **Initialization**:
+    - Variables `wishvel`, `fmove`, `smove`, `wishdir`, and `wishspeed` are initialized to handle the desired movement velocity, forward movement, side movement, direction, and speed respectively.
+    - `forward`, `right`, and `up` vectors are initialized to determine movement angles.
+
+  - **Determine Movement Angles**:
+    - `AngleVectors` is used to determine the forward, right, and up vectors based on the player's view angles (`mv->m_vecViewAngles`).
+
+  - **Copy Movement Amounts**:
+    - `fmove` and `smove` are set to the player's forward and side movement inputs (`mv->m_flForwardMove` and `mv->m_flSideMove`).
+
+  - **Zero Out Z Components**:
+    - The z-components of the `forward` and `right` vectors are set to 0 to ensure horizontal movement.
+    - `VectorNormalize` normalizes the `forward` and `right` vectors.
+
+  - **Calculate Desired Movement Velocity**:
+    - A loop calculates the desired movement velocity (`wishvel`) based on the player's input (`fmove` and `smove`).
+    - The z-component of `wishvel` is set to 0 to ensure horizontal movement.
+
+  - **Determine Movement Direction and Speed**:
+    - `VectorCopy` copies `wishvel` to `wishdir`.
+    - `VectorNormalize` normalizes `wishdir` and sets `wishspeed` to the length of `wishdir`.
+
+  - **Clamp Speed to Maximum**:
+    - If `wishspeed` exceeds the player's maximum speed (`mv->m_flMaxSpeed`), `wishvel` is scaled down to ensure the player does not exceed the maximum speed.
+
+  - **Air Acceleration**:
+    - `AirAccelerate` is called to handle the acceleration while in the air, using `wishdir`, `wishspeed`, and the air acceleration value (`sv_airaccelerate`).
+
+  - **Add Base Velocity**:
+    - Any base velocity (e.g., from moving platforms) is added to the player's current velocity (`mv->m_vecVelocity`).
+
+  - **Try Player Move**:
+    - `TryPlayerMove` is called to attempt to move the player based on the current velocity.
+
+  - **Remove Base Velocity**:
+    - The base velocity is subtracted from the player's current velocity to revert to the original state.
+
+----
+
+==== CGameMovement::AirAccelerate ====
+
+The ''AirAccelerate'' function is essential for managing the player's movement while in the air. It ensures that the player can control their movement direction and speed, allowing for air strafing and other aerial maneuvers. The function carefully calculates the necessary adjustments to the player's velocity, taking into account the desired speed, current speed, acceleration factor, and frame time. This ensures smooth and responsive air movement in the game.
+
+<code cpp>
+void CGameMovement::AirAccelerate( Vector& wishdir, float wishspeed, float accel )
+{
+    int i;
+    float addspeed, accelspeed, currentspeed;
+    float wishspd;
+
+    wishspd = wishspeed;
+    
+    if (player->pl.deadflag)
+        return;
+    
+    if (player->m_flWaterJumpTime)
+        return;
+
+    // Cap speed
+    if (wishspd > 30)
+        wishspd = 30;
+
+    // Determine veer amount
+    currentspeed = mv->m_vecVelocity.Dot(wishdir);
+
+    // See how much to add
+    addspeed = wishspd - currentspeed;
+
+    // If not adding any, done.
+    if (addspeed <= 0)
+        return;
+
+    // Determine acceleration speed after acceleration
+    accelspeed = accel * wishspeed * gpGlobals->frametime * player->m_surfaceFriction;
+
+    // Cap it
+    if (accelspeed > addspeed)
+        accelspeed = addspeed;
+    
+    // Adjust pmove vel.
+    for (i=0 ; i<3 ; i++)
+    {
+        mv->m_vecVelocity[i] += accelspeed * wishdir[i];
+        mv->m_outWishVel[i] += accelspeed * wishdir[i];
+    }
+}
+</code>
+
+=== Breakdown: ===
+
+  - **Initialization and Early Exits:**
+     - `wishspd` is set to the value of `wishspeed`.
+     - If the player is dead (`player->pl.deadflag`), the function exits early.
+     - If the player is in a water jump (`player->m_flWaterJumpTime`), the function exits early.
+
+  - **Speed Capping:**
+     - The desired speed (`wishspd`) is capped at 30 units (air max wish speed).
+
+  - **Current Speed Calculation:**
+     - The current speed in the direction of `wishdir` is calculated using the dot product of the player's velocity (`mv->m_vecVelocity`) and the desired direction (`wishdir`).
+
+  - **Additional Speed Calculation:**
+     - The additional speed needed to reach the desired speed is calculated by subtracting the current speed from the desired speed.
+
+  - **Check if Additional Speed is Needed:**
+     - If no additional speed is needed (`addspeed <= 0`), the function exits early.
+
+  - **Acceleration Speed Calculation:**
+     - the acceleration speed is calculated using the provided acceleration (`accel`), the desired speed (`wishspeed`), the frame time (`gpGlobals->frametime`), and the player's surface friction (`player->m_surfaceFriction`).
+
+  - **Cap the Acceleration Speed:**
+     - The acceleration speed is capped to ensure it does not exceed the additional speed needed.
+
+  - **Adjust Player's Velocity:**
+     - The player's velocity (`mv->m_vecVelocity`) and the output wish velocity (`mv->m_outWishVel`) are adjusted by adding the acceleration speed in the direction of `wishdir`.
+
+----
+
+==== CGameMovement::ClipVelocity ====
+
+The ClipVelocity function calculates the reflection of an incoming velocity vector off a plane defined by a normal vector. It adjusts the velocity to ensure it does not penetrate the plane and returns a bitmask indicating whether the collision was with a floor or a wall. The overbounce factor determines how much the velocity should be "bounced" off the plane. This is your what happens to your velocity when you collide with a ramp.
+
+<code cpp>
+int CGameMovement::ClipVelocity( Vector& in, Vector& normal, Vector& out, float overbounce )
+{
+	float	backoff;
+	float	change;
+	float angle;
+	int		i, blocked;
+	
+	angle = normal[ 2 ];
+
+	blocked = 0x00;         // Assume unblocked.
+	if (angle > 0)			// If the plane that is blocking us has a positive z component, then assume it's a floor.
+		blocked |= 0x01;	// 
+	if (!angle)				// If the plane has no Z, it is vertical (wall/step)
+		blocked |= 0x02;	// 
+	
+
+	// Determine how far along plane to slide based on incoming direction.
+	backoff = DotProduct (in, normal) * overbounce;
+
+	for (i=0 ; i<3 ; i++)
+	{
+		change = normal[i]*backoff;
+		out[i] = in[i] - change; 
+	}
+	
+	// iterate once to make sure we aren't still moving through the plane
+	float adjust = DotProduct( out, normal );
+	if( adjust < 0.0f )
+	{
+		out -= ( normal * adjust );
+//		Msg( "Adjustment = %lf\n", adjust );
+	}
+
+	// Return blocking flags.
+	return blocked;
+}
+</code>
+
+=== Breakdown ===
+
+- **Parameters:**
+  - `Vector& in`: The incoming velocity vector.
+  - `Vector& normal`: The normal vector of the plane we are colliding with.
+  - `Vector& out`: The resulting velocity vector after the collision.
+  - `float overbounce`: A factor that determines how much the velocity should be "bounced" off the plane.
+
+- **Return Value:**
+  - An integer representing the type of surface the collision occurred with (floor or wall).
+
+- **Variables:**
+  - `backoff`: The component of the velocity that is perpendicular to the plane.
+  - `change`: The change in velocity along each axis.
+  - `angle`: The z-component of the normal vector.
+  - `blocked`: A bitmask indicating the type of surface (floor or wall).
+  - `i`: Loop counter.
+
+- **Initial Setup:**
+  - `angle` is set to the z-component of the normal vector.
+  - `blocked` is initialized to 0, indicating no blockage.
+
+- **Determine Surface Type**
+  - If `angle` is positive, it means the normal vector points upwards, indicating a floor. The `blocked` variable is updated with the floor flag (`0x01`).
+  - If `angle` is zero, it means the normal vector is horizontal, indicating a wall or step. The `blocked` variable is updated with the wall flag (`0x02`).
+
+- **Calculate Backoff**
+  - `backoff` is calculated as the dot product of the incoming velocity and the normal vector, scaled by the `overbounce` factor. This represents how much of the incoming velocity is directed into the plane.
+
+- **Adjust Velocity**
+  - For each component (x, y, z) of the velocity vector:
+    - Calculate the change in velocity along that axis (`change`).
+    - Subtract this change from the incoming velocity to get the new velocity (`out`).
+
+- **Ensure No Penetration**
+  - Calculate the dot product of the adjusted velocity (`out`) and the normal vector.
+  - If this value is negative, it means the adjusted velocity is still penetrating the plane.
+  - Adjust the velocity to ensure it is not penetrating the plane by subtracting the component of the velocity that is into the plane.
+
+- **Return Blocking Flags**
+  - Return the `blocked` variable, which indicates whether the collision was with a floor or a wall.
+
+----
+
+==== CGameMovement::CheckVelocity ====
+
+The `CGameMovement::CheckVelocity` function ensures that the velocity and origin of the game entity are within valid bounds. It performs the following checks and corrections:
+- Detects and corrects NaN values in both velocity and origin.
+- Ensures that the velocity does not exceed the maximum allowed value in either direction.
+
+<code cpp>
+void CGameMovement::CheckVelocity( void )
+{
+    int i;
+
+    //
+    // bound velocity
+    //
+
+    Vector org = mv->GetAbsOrigin();
+
+    for (i=0; i < 3; i++)
+    {
+        // See if it's bogus.
+        if (IS_NAN(mv->m_vecVelocity[i]))
+        {
+            DevMsg( 1, "PM  Got a NaN velocity %s\n", DescribeAxis( i ) );
+            mv->m_vecVelocity[i] = 0;
+        }
+
+        if (IS_NAN(org[i]))
+        {
+            DevMsg( 1, "PM  Got a NaN origin on %s\n", DescribeAxis( i ) );
+            org[ i ] = 0;
+            mv->SetAbsOrigin( org );
+        }
+
+        // Bound it.
+        if (mv->m_vecVelocity[i] > sv_maxvelocity.GetFloat()) 
+        {
+            DevMsg( 1, "PM  Got a velocity too high on %s\n", DescribeAxis( i ) );
+            mv->m_vecVelocity[i] = sv_maxvelocity.GetFloat();
+        }
+        else if (mv->m_vecVelocity[i] < -sv_maxvelocity.GetFloat())
+        {
+            DevMsg( 1, "PM  Got a velocity too low on %s\n", DescribeAxis( i ) );
+            mv->m_vecVelocity[i] = -sv_maxvelocity.GetFloat();
+        }
+    }
+}
+</code>
+
+- **Initialization**:
+   - The function starts by declaring an integer `i` for loop iteration.
+   - It retrieves the current absolute origin of the entity and stores it in the `org` vector.
+
+- **Loop Through Each Axis**:
+   - The function uses a loop to iterate over the three components (x, y, z) of the velocity and origin vectors.
+
+- **Check for NaN Values in Velocity**:
+   - For each component of the velocity vector, it checks if the value is NaN (Not a Number) using the `IS_NAN` macro.
+   - If a NaN value is detected, it logs a debug message indicating which axis has the NaN value.
+   - The NaN velocity component is then set to `0` to correct the invalid value.
+
+- **Check for NaN Values in Origin**:
+   - Similarly, it checks if any component of the origin vector is NaN.
+   - If a NaN value is found, it logs a debug message and sets the NaN origin component to `0`.
+   - The corrected origin vector is then set back to the entity using `mv->SetAbsOrigin(org)`.
+
+- **Bound the Velocity**:
+   - The function then checks if the velocity component exceeds the maximum allowed velocity (`sv_maxvelocity`).
+   - If the velocity is too high, it logs a debug message and sets the velocity to the maximum allowed value.
+   - If the velocity is too low (less than the negative of the maximum allowed value), it logs a debug message and sets the velocity to the negative maximum allowed value.
+
+----
+
+==== CGameMovement::StartGravity, CGameMovement::AddGravity, and CGameMovement::FinishGravity ====
+
+=== CGameMovement::StartGravity ===
+
+This function is responsible for applying the initial gravity to the player's velocity at the start of a movement frame.
+
+<code cpp>
+void CGameMovement::StartGravity(void)
+{
+    float ent_gravity;
+
+    if (player->GetGravity())
+        ent_gravity = player->GetGravity();
+    else
+        ent_gravity = 1.0;
+
+    mv->m_vecVelocity[2] -= (ent_gravity * GetCurrentGravity() * 0.5 * gpGlobals->frametime);
+    mv->m_vecVelocity[2] += player->GetBaseVelocity()[2] * gpGlobals->frametime;
+
+    player->SetBaseVelocity(Vector(player->GetBaseVelocity()[0], player->GetBaseVelocity()[1], 0));
+}
+</code>
+
+- **Explanation:**
+  - Gravity Calculation: The function first checks if the player has a custom gravity value set (`player->GetGravity()`). If not, it defaults to `1.0`.
+  - Apply Gravity: It then applies half of the gravity for the current frame to the player's vertical velocity (`m_vecVelocity[2]`).
+  - Base Velocity: The player's base velocity in the vertical direction is added to the player's velocity.
+  - Reset Base Velocity: Finally, it resets the player's base velocity in the vertical direction to `0`.
+
+=== CGameMovement::FinishGravity ===
+
+This function completes the gravity application for the current frame.
+
+<code cpp>
+void CGameMovement::FinishGravity(void)
+{
+    float ent_gravity;
+
+    if (player->GetGravity())
+        ent_gravity = player->GetGravity();
+    else
+        ent_gravity = 1.0;
+
+    mv->m_vecVelocity[2] -= (ent_gravity * GetCurrentGravity() * 0.5 * gpGlobals->frametime);
+}
+</code>
+
+- **Explanation:**
+  - Gravity Calculation: Similar to `StartGravity`, it checks for a custom gravity value or defaults to `1.0`.
+  - Apply Gravity: It applies the remaining half of the gravity for the current frame to the player's vertical velocity (`m_vecVelocity[2]`).
+
+=== CGameMovement::AddGravity ===
+
+This function adds the full gravity effect to the player's velocity.
+
+<code cpp>
+void CGameMovement::AddGravity(void)
+{
+    float ent_gravity;
+
+    if (player->GetGravity())
+        ent_gravity = player->GetGravity();
+    else
+        ent_gravity = 1.0;
+
+    mv->m_vecVelocity[2] -= (ent_gravity * GetCurrentGravity() * gpGlobals->frametime);
+}
+</code>
+
+- **Explanation:**
+  - Gravity Calculation: It checks for a custom gravity value or defaults to `1.0`.
+  - Apply Gravity: It applies the full gravity for the current frame to the player's vertical velocity (`m_vecVelocity[2]`).
+
+=== How They Work Together ===
+
+1. **Start of Frame (`StartGravity`):**
+   - At the beginning of a movement frame, `StartGravity` is called to apply half of the gravity effect to the player's vertical velocity. This simulates the initial pull of gravity.
+
+2. **During Frame (`AddGravity`):**
+   - If needed, `AddGravity` can be called to apply the full gravity effect for the frame. This might be used in scenarios where the gravity needs to be applied in one go rather than split into two halves.
+
+3. **End of Frame (`FinishGravity`):**
+   - At the end of the movement frame, `FinishGravity` is called to apply the remaining half of the gravity effect. This completes the gravity application for the frame.
+
+By splitting the gravity application into two halves (`StartGravity` and `FinishGravity`), the system ensures a more accurate and smoother simulation of gravity over the frame. `AddGravity` provides a way to apply the full gravity effect if needed in specific scenarios.
+
+=== Example Flow ===
+
+1. **Frame Start:**
+   - `StartGravity` is called.
+   - Half of the gravity is applied to the player's vertical velocity.
+
+2. **Movement and Other Calculations:**
+   - Various movement calculations and updates occur.
+
+3. **Frame End:**
+   - `FinishGravity` is called.
+   - The remaining half of the gravity is applied to the player's vertical velocity.
+
+----
+
+==== Conclusion ====
+
+In conclusion, the player movement system in the Source engine is a complex and finely-tuned mechanism that involves various functions and calculations to ensure smooth, responsive, and realistic movement. From essential functions like TryPlayerMove, PlayerMove and ProcessMovement to more specific ones like AirMove, AirAccelerate, ClipVelocity, and the gravity-related functions, each component plays a vital role in creating a seamless and enjoyable player experience.
+
+Surfing, in particular, relies heavily on the air movement and acceleration functions, as well as the precise handling of collisions and velocity adjustments. The ClipVelocity function, for example, is crucial for ensuring that the player can smoothly glide along surfaces without getting stuck or bouncing off in unintended ways.
+
+Overall, the player movement system in the Source engine is a testament to the importance of well-designed and carefully implemented movement mechanics in first-person shooter games. If you would like to understand further, I will periodically be updating this document with more information.
+
+Date: 6/9/24 DRAFT-1
