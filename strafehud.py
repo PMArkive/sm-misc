@@ -1,4 +1,5 @@
 #source.python example implementation
+#adapted from KiD-Fearless strafe-trainer.sp
 import math
 from events import Event
 from players.entity import Player
