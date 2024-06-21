@@ -66,7 +66,7 @@ public void OnTrickCompleted(int client)
     }
 }
 
-public void ResetSpriteCallback(int entity, int client)
+public void ResetSpriteCallback(int client)
 {
     // Reset the sprite visibility
     g_showSprite[client] = false;
