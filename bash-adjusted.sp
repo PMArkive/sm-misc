@@ -1262,7 +1262,7 @@ public void OnRawInputRetrieved(QueryCookie cookie, int client, ConVarQueryResul
     }
 
     g_mRawInputCheckedCount[client]++;
-    g_bQueryPending[client][CONVAR_RAWINPUT] = false;
+    SimulateConVarQueryCompleted(client, CONVAR_RAWINPUT);
 
     // If m_rawinput is 0, query additional cvars
     if (!mRawInput)
