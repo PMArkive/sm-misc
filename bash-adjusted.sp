@@ -1398,7 +1398,7 @@ public void OnJoystickRetrieved(QueryCookie cookie, int client, ConVarQueryResul
     }
 
     g_JoyStickCheckedCount[client]++;
-    g_bQueryPending[client][CONVAR_JOYSTICK] = false;
+    SimulateConVarQueryCompleted(client, CONVAR_JOYSTICK);
 }
 
 
