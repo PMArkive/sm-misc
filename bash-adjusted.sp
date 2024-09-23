@@ -154,8 +154,8 @@ bool  g_JoyStick[MAXPLAYERS + 1]; int g_JoyStickChangedCount[MAXPLAYERS + 1]; in
 // These arrays store historical data about strafes and key switches,
 // which is used to analyze patterns and detect anomalies.
 
-#define MAX_FRAMES 50 // Maximum number of frames to record for strafe analysis
-#define MAX_FRAMES_KEYSWITCH 50 // Maximum number of frames to record for key switch analysis
+#define MAX_FRAMES 400 // Maximum number of frames to record for strafe analysis
+#define MAX_FRAMES_KEYSWITCH 400 // Maximum number of frames to record for key switch analysis
 
 int  g_iStartStrafe_CurrentFrame[MAXPLAYERS + 1]; // Current frame index for start strafe recording
 any  g_iStartStrafe_Stats[MAXPLAYERS + 1][7][MAX_FRAMES]; // Start strafe data
@@ -2097,12 +2097,12 @@ void CheckForIllegalTurning(int client, float vel[3])
 {
 	if(GetClientButtons(client) & (IN_LEFT|IN_RIGHT))
 	{
-		g_iPlusLeftCount[client]++;
+		g_iPlusLeftCount[client]++; // Client is turnbinding
 	}
 
-	if(g_iCmdNum[client] % 100 == 0)
+	if(g_iCmdNum[client] % 100 == 0) // Every 100 ticks
 	{
-		if(g_iIllegalYawCount[client] > 30 && g_iPlusLeftCount[client] == 0)
+		if(g_iIllegalYawCount[client] > 30 && g_iPlusLeftCount[client] == 0) // Client has more than 30 ticks of illegal yaw changes and 0 turn bind keypress
 		{
 			AnticheatLog(client, "is turning with illegal yaw values (m_yaw: %f, sens: %f, m_customaccel: %d, count: %d, m_yaw changes: %d)", g_mYaw[client], g_Sensitivity[client], g_mCustomAccel[client], g_iIllegalYawCount[client], g_mYawChangedCount[client]);
 
@@ -2127,10 +2127,11 @@ void CheckForIllegalTurning(int client, float vel[3])
 	}
 
 	// Only calculate illegal turns when player cvars have been checked
-	if(g_mCustomAccelCheckedCount[client] == 0 || g_mFilterCheckedCount[client] == 0 || g_mYawCheckedCount[client] == 0 || g_SensitivityCheckedCount[client] == 0)
-	{
-		return;
-	}
+    if(g_mYawCheckedCount[client] == 0 || g_SensitivityCheckedCount[client] == 0 || 
+       (g_mRawInput[client] == false && (g_mCustomAccelCheckedCount[client] == 0 || g_mFilterCheckedCount[client] == 0)))
+    {
+        return;
+    }
 
 	// Check for teleporting because teleporting can cause illegal turn values
 	if(g_iCmdNum[client] - g_iLastTeleportTick[client] < 100)
@@ -2138,17 +2139,20 @@ void CheckForIllegalTurning(int client, float vel[3])
 		return;
 	}
 
-	// Prevent incredibly high sensitivity from causing detections
-	if(FloatAbs(g_fAngleDifference[client][1]) > 20.0 || FloatAbs(g_Sensitivity[client] * g_mYaw[client]) > 0.8)
-	{
-		return;
-	}
+    // Implement a more robust sensitivity sanity check
+    float effectiveSensitivity = g_Sensitivity[client] * g_mYaw[client];
+    if(FloatAbs(g_fAngleDifference[client][1]) > 30.0 || effectiveSensitivity > 1.0 || effectiveSensitivity < 0.000001)
+    {
+        return;
+    }
 
-	// Prevent players who are zooming with a weapon to trigger the anticheat
+
+	/* Prevent players who are zooming with a weapon to trigger the anticheat
 	if(GetEntProp(client, Prop_Send, "m_iFOVStart") != 90)
 	{
 		return;
 	}
+    */
 
 	// Prevent false positives with players touching rotating blocks that will change their angles
 	if(g_bTouchesFuncRotating[client] == true)
@@ -2166,10 +2170,12 @@ void CheckForIllegalTurning(int client, float vel[3])
 	if(g_Engine == Engine_CSS) fMaxMove = 400.0;
 	else if(g_Engine == Engine_CSGO) fMaxMove = 450.0;
 
+    /*
 	if(FloatAbs(vel[0]) != fMaxMove && FloatAbs(vel[1]) != fMaxMove)
 	{
 		return;
 	}
+    */
 
 	float my = g_fAngleDifference[client][0];
 	float mx = g_fAngleDifference[client][1];
